@@ -1,6 +1,7 @@
 
 {
-  "name": "QuickRecall",
+  "id": "./",
+  "name": "QuickRecall — Sisco Solutions",
   "short_name": "QuickRecall",
   "description": "A lightweight task manager for quick reminders and resuming interrupted work.",
   "start_url": "./",
@@ -9,5 +10,18 @@
   "background_color": "#111318",
   "theme_color": "#f0ad4e",
   "orientation": "any",
-  "icons": []
+  "icons": [
+    {
+      "src": "./quickrecall-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./quickrecall-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
