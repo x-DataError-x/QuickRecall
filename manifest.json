@@ -1,0 +1,13 @@
+
+{
+  "name": "QuickRecall",
+  "short_name": "QuickRecall",
+  "description": "A lightweight task manager for quick reminders and resuming interrupted work.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111318",
+  "theme_color": "#f0ad4e",
+  "orientation": "any",
+  "icons": []
+}
