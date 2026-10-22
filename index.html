@@ -1,1 +1,165 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>QuickRecall | Sisco Solutions</title>
+<style>
+:root{color-scheme:dark;--bg:#111827;--panel:#1f2937;--line:#374151;--text:#f9fafb;--muted:#9ca3af;--accent:#f59e0b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,sans-serif}
+main{max-width:680px;margin:auto;padding:20px 16px 40px}
+header{margin-bottom:22px}.brand{color:var(--accent);font-size:12px;letter-spacing:2px;font-weight:800}
+h1{margin:5px 0;font-size:30px}h2{font-size:17px;margin:0 0 12px}
+.subtitle,.meta{color:var(--muted);font-size:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+.current{border-color:#b77913}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px;background:#111827;color:var(--text);font:inherit;font-size:16px}
+textarea{min-height:70px;resize:vertical}
+button{border:0;border-radius:10px;padding:12px 14px;background:var(--accent);color:#111827;font-weight:750;font-size:14px;cursor:pointer}
+button.secondary{background:#374151;color:var(--text)}button.danger{background:#7f1d1d;color:white}
+.full{width:100%;margin-top:12px}.task{border-top:1px solid var(--line);padding:14px 0}.task:first-child{border-top:0;padding-top:0}
+.task-text{font-size:17px;font-weight:700;overflow-wrap:anywhere}.meta{font-size:12px;margin-top:6px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.actions button{flex:1}
+.empty{color:var(--muted);font-size:14px}.status{color:#86efac;font-size:12px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:16px 0}
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand">SISCO SOLUTIONS™</div><h1>QuickRecall</h1><div class="subtitle">Clear your head. Remember what matters.</div></header>
+
+<section class="panel">
+<h2>⚡ Quick Capture</h2>
+<form id="capture">
+<label for="entry">What do you need to remember?</label>
+<textarea id="entry" placeholder="e.g. Check the conveyor sensor..." required></textarea>
+<label for="priority">Priority</label>
+<select id="priority"><option>Normal</option><option>High</option><option>Urgent</option></select>
+<button class="full" type="submit">＋ Save Reminder</button>
+</form>
+</section>
+
+<section class="panel current">
+<h2>🎯 RESUME TASK — Your Main Focus</h2>
+<div id="focusView" class="empty">Set your current task so interruptions don't make you lose track.</div>
+<label for="focusInput">What were you working on?</label>
+<input id="focusInput" placeholder="Your original task...">
+<button class="full" id="saveFocus">Save / Update Current Task</button>
+</section>
+
+<section class="panel">
+<h2>📌 Your Reminders <span id="count"></span></h2>
+<div id="tasks"><p class="empty">No reminders yet. Capture your first one above.</p></div>
+</section>
+
+<section class="panel">
+<h2>💾 Your Data</h2>
+<p class="subtitle">Stored locally in this browser on this device.</p>
+<div class="actions"><button class="secondary" id="export">Export Backup</button><button class="secondary" id="import">Restore Backup</button></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
+<p id="status" class="status" role="status"></p>
+</section>
+<footer>QuickRecall · Sisco Solutions™ · 2026<br>Local-first design</footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+const KEY="quickrecall.v1";
+const $=id=>document.getElementById(id);
+let data={focus:"",tasks:[]};
+
+function status(s){$("status").textContent=s}
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify(data));status("Saved on this device.");return true}
+ catch(e){status("Save failed. Export a backup and check browser storage.");return false}
+}
+function el(tag,cls,txt){
+ const n=document.createElement(tag);
+ if(cls)n.className=cls;
+ if(txt!==undefined)n.textContent=txt;
+ return n;
+}
+function render(){
+ const fv=$("focusView");
+ fv.replaceChildren();
+ $("focusInput").value=data.focus;
+ if(data.focus){
+  fv.className="task-text";fv.textContent=data.focus;
+  const clear=el("button","secondary","Clear Current Task");
+  clear.onclick=function(){
+   if(confirm("Clear the current task? Your reminders will remain.")){
+    data.focus="";save();render();
+   }
+  };
+  const a=el("div","actions");a.append(clear);fv.append(a);
+ }else{
+  fv.className="empty";fv.textContent="No current task set yet.";
+ }
+ const list=$("tasks");list.replaceChildren();
+ const pending=data.tasks.filter(t=>!t.done);
+ $("count").textContent="("+pending.length+")";
+ if(!pending.length)list.append(el("p","empty","All clear! No pending reminders."));
+ const rank={Urgent:0,High:1,Normal:2};
+ pending.sort((a,b)=>(rank[a.priority]??2)-(rank[b.priority]??2)||b.created-a.created).forEach(t=>{
+  const item=el("div","task");
+  item.append(el("div","task-text",t.text));
+  item.append(el("div","meta",t.priority+" priority · Added "+new Date(t.created).toLocaleString()));
+  const actions=el("div","actions");
+  const done=el("button","","✓ Complete");
+  done.onclick=()=>{t.done=true;t.completed=Date.now();save();render()};
+  const current=el("button","secondary","Make Current Task");
+  current.onclick=()=>{data.focus=t.text;save();render();window.scrollTo({top:0,behavior:"smooth"})};
+  const del=el("button","danger","Delete");
+  del.onclick=()=>{
+   if(confirm("Permanently delete this reminder?")){
+    data.tasks=data.tasks.filter(x=>x.id!==t.id);save();render();
+   }
+  };
+  actions.append(done,current,del);item.append(actions);list.append(item);
+ });
+}
+$("capture").addEventListener("submit",function(e){
+ e.preventDefault();const text=$("entry").value.trim();if(!text)return;
+ data.tasks.push({id:String(Date.now())+"-"+Math.random().toString(36).slice(2),text,priority:$("priority").value,created:Date.now(),done:false});
+ if(save()){render();$("entry").value="";$("entry").focus()}
+});
+$("saveFocus").onclick=function(){
+ data.focus=$("focusInput").value.trim();
+ if(save())render();
+};
+$("export").onclick=function(){
+ const blob=new Blob([JSON.stringify({format:"QuickRecall backup",version:1,exported:new Date().toISOString(),data},null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);const a=el("a");
+ a.href=url;a.download="QuickRecall-backup-"+new Date().toISOString().slice(0,10)+".json";
+ document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+ status("Backup export requested.");
+};
+$("import").onclick=()=>$("file").click();
+$("file").addEventListener("change",async function(e){
+ const f=e.target.files[0];if(!f)return;
+ try{
+  const parsed=JSON.parse(await f.text());const incoming=parsed.data||parsed;
+  if(!incoming||typeof incoming.focus!=="string"||!Array.isArray(incoming.tasks)||
+   !incoming.tasks.every(t=>t&&typeof t.text==="string"&&typeof t.id==="string"&&typeof t.done==="boolean")){
+   throw Error("Invalid backup");
+  }
+  if(!confirm("Restoring will replace current QuickRecall data. Export a backup first if needed."))return;
+  data={focus:incoming.focus,tasks:incoming.tasks};if(save())render();
+ }catch(err){status("That file isn't a valid QuickRecall backup.");}
+ finally{e.target.value=""}
+});
+try{
+ const raw=localStorage.getItem(KEY);
+ if(raw){const parsed=JSON.parse(raw);if(parsed&&Array.isArray(parsed.tasks)&&typeof parsed.focus==="string")data=parsed}
+}catch(e){status("Saved data could not be read. Try restoring a backup.")}
+render();
+})();
+</script>
+</body>
+</html>
+
